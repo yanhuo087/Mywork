@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>移动端考勤打卡系统</title>
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* 页面容器 */
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+        
+        /* 顶部导航栏 */
+        .tab-nav {
+            display: flex;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab-btn.active {
+            color: #409eff;
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #409eff;
+            border-radius: 3px;
+        }
+        
+        /* 页面内容区域 */
+        .page {
+            display: none;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            min-height: calc(100vh - 100px);
+        }
+        
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 第一页：打卡登记样式 */
+        .checkin-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .checkin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .checkin-btn {
+            height: 100px;
+            border-radius: 12px;
+            border: none;
+            font-size: 18px;
+            font-weight: 500;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .checkin-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .morning-checkin {
+            background-color: #67c23a;
+        }
+        
+        .afternoon-checkin {
+            background-color: #1989fa;
+        }
+        
+        .rest-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .rest-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .rest-btn {
+            height: 80px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            background-color: #909399;
+        }
+        
+        .rest-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .rest-morning {
+            background-color: #e6a23c;
+        }
+        
+        .rest-afternoon {
+            background-color: #f56c6c;
+        }
+        
+        .rest-all {
+            background-color: #722ed1;
+        }
+        
+        .success-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            display: none;
+            z-index: 9999;
+            animation: toastFade 0.3s ease;
+        }
+        
+        @keyframes toastFade {
+            from { opacity: 0; transform: translate(-50%, -40%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+        
+        /* 第二页：记录管理样式 */
+        .record-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            height: 45px;
+            padding: 0 15px 0 40px;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #409eff;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 18px;
+        }
+        
+        .record-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .action-btn {
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .add-btn { background-color: #67c23a; }
+        .edit-btn { background-color: #409eff; }
+        .delete-btn { background-color: #f56c6c; }
+        .clear-btn { background-color: #e6a23c; }
+        .export-btn { background-color: #722ed1; }
+        
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .record-table th,
+        .record-table td {
+            padding: 12px 8px;
+            text-align: center;
+            font-size: 14px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .record-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .record-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .record-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        
+        /* 第三页：图形化展示样式 */
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .month-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background-color: #409eff;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .month-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .current-month {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-header-cell {
+            text-align: center;
+            padding: 10px 0;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .calendar-day {
+            /* 修复日历单元格高度问题，使用固定高度而非aspect-ratio */
+            height: 60px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .day-number {
+            padding: 3px;
+            font-size: 12px;
+            text-align: center;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-cell {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;  /* 缩小字体适应小屏幕 */
+            font-weight: bold;
+            color: white;
+        }
+        
+        .status-present {
+            background-color: #67c23a;
+        }
+        
+        .status-absent {
+            background-color: #f56c6c;
+        }
+        
+        .status-rest {
+            background-color: #409eff;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            padding: 20px;
+            animation: modalFade 0.3s ease;
+        }
+        
+        @keyframes modalFade {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .form-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .form-input, .form-select {
+            height: 40px;
+            padding: 0 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            border-color: #409eff;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            height: 45px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .confirm-btn {
+            background-color: #409eff;
+            color: #fff;
+        }
+        
+        .cancel-btn {
+            background-color: #f5f7fa;
+            color: #666;
+        }
+        
+        /* 空状态样式 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 0;
+            color: #999;
+            font-size: 16px;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        /* 适配小屏手机 */
+        @media (max-width: 375px) {
+            .checkin-btn {
+                height: 90px;
+                font-size: 16px;
+            }
+            
+            .rest-btn {
+                height: 70px;
+                font-size: 14px;
+            }
+            
+            .record-table th,
+            .record-table td {
+                padding: 10px 5px;
+                font-size: 12px;
+            }
+            
+            /* 日历适配小屏幕 */
+            .calendar-day {
+                height: 50px;  /* 进一步减小高度适应极小屏幕 */
+            }
+            
+            .status-cell {
+                font-size: 12px;  /* 进一步缩小字体 */
+            }
+            
+            .day-number {
+                font-size: 10px;
+                padding: 2px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部标签导航 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchPage(0)">打卡登记</button>
+            <button class="tab-btn" onclick="switchPage(1)">记录管理</button>
+            <button class="tab-btn" onclick="switchPage(2)">打卡日历</button>
+        </div>
+        
+        <!-- 第一页：打卡登记 -->
+        <div class="page active" id="page1">
+            <h2 class="checkin-title">今日打卡</h2>
+            
+            <div class="checkin-grid">
+                <button class="checkin-btn morning-checkin" onclick="checkin('morning')">
+                    上午打卡
+                </button>
+                <button class="checkin-btn afternoon-checkin" onclick="checkin('afternoon')">
+                    下午打卡
+                </button>
+            </div>
+            
+            <h3 class="rest-title">休班登记</h3>
+            <div class="rest-grid">
+                <button class="rest-btn rest-morning" onclick="registerRest('morning')">
+                    上午休班
+                </button>
+                <button class="rest-btn rest-afternoon" onclick="registerRest('afternoon')">
+                    下午休班
+                </button>
+                <button class="rest-btn rest-all" onclick="registerRest('all')">
+                    全天休班
+                </button>
+            </div>
+        </div>
+        
+        <!-- 第二页：记录管理 -->
+        <div class="page" id="page2">
+            <div class="record-controls">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索记录（日期/状态）" oninput="filterRecords()">
+                </div>
+                
+                <div class="record-actions">
+                    <button class="action-btn add-btn" onclick="openModal('add')">添加记录</button>
+                    <button class="action-btn edit-btn" onclick="openModal('edit')">编辑记录</button>
+                    <button class="action-btn delete-btn" onclick="deleteRecord()">删除记录</button>
+                    <button class="action-btn clear-btn" onclick="clearMonthRecords()">清除月度记录</button>
+                    <button class="action-btn export-btn" onclick="exportRecords()">导出Excel</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="record-table" id="recordTable">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>日期</th>
+                            <th>上午状态</th>
+                            <th>下午状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordBody">
+                        <!-- 记录内容将通过JS动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 第三页：图形化展示 -->
+        <div class="page" id="page3">
+            <div class="calendar-header">
+                <button class="month-btn" onclick="changeMonth(-1)">◀</button>
+                <div class="current-month" id="currentMonth"></div>
+                <button class="month-btn" onclick="changeMonth(1)">▶</button>
+            </div>
+            
+            <div class="calendar-grid">
+                <div class="calendar-header-cell">日</div>
+                <div class="calendar-header-cell">一</div>
+                <div class="calendar-header-cell">二</div>
+                <div class="calendar-header-cell">三</div>
+                <div class="calendar-header-cell">四</div>
+                <div class="calendar-header-cell">五</div>
+                <div class="calendar-header-cell">六</div>
+                <!-- 日历内容将通过JS动态生成 -->
+            </div>
+            
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- 日期格子将通过JS动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 成功提示框 -->
+        <div class="success-toast" id="toast"></div>
+        
+        <!-- 模态框 -->
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <h3 class="modal-title" id="modalTitle">添加记录</h3>
+                <form class="modal-form" id="recordForm">
+                    <div class="form-group">
+                        <label class="form-label">日期</label>
+                        <input type="date" class="form-input" id="recordDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">上午状态</label>
+                        <select class="form-select" id="morningStatus">
+                            <option value="打卡">打卡</option>
+                            <option value="未打卡">未打卡</option>
+                            <option value="休班">休班</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">下午状态</label>
+                        <select class="form-select" id="afternoonStatus">
+                            <option value="打卡">打卡</option>
+                            <option value="未打卡">未打卡</option>
+                            <option value="休班">休班</option>
+                        </select>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="button" class="modal-btn cancel-btn" onclick="closeModal()">取消</button>
+                        <button type="submit" class="modal-btn confirm-btn">确认</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentPage = 0;
+        let checkinRecords = JSON.parse(localStorage.getItem('checkinRecords')) || [];
+        let currentCalendarMonth = new Date();
+        let selectedRecordId = null;
+        
+        // 切换页面
+        function switchPage(pageIndex) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach((page, index) => {
+                page.classList.toggle('active', index === pageIndex);
+            });
+            
+            // 更新标签状态
+            document.querySelectorAll('.tab-btn').forEach((btn, index) => {
+                btn.classList.toggle('active', index === pageIndex);
+            });
+            
+            currentPage = pageIndex;
+            
+            // 如果切换到日历页面，重新渲染日历
+            if (pageIndex === 2) {
+                renderCalendar();
+            }
+            
+            // 如果切换到记录页面，重新渲染记录
+            if (pageIndex === 1) {
+                renderRecords();
+            }
+        }
+        
+        // 显示提示框
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
+        }
+        
+        // 打卡功能
+        function checkin(type) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].substring(0, 8);
+            
+            // 检查是否已经打卡
+            const existingRecord = checkinRecords.find(record => 
+                record.date === dateStr && 
+                ((type === 'morning' && record.morningStatus === '打卡') || 
+                 (type === 'afternoon' && record.afternoonStatus === '打卡'))
+            );
+            
+            if (existingRecord) {
+                showToast(type === 'morning' ? '上午已打卡' : '下午已打卡');
+                return;
+            }
+            
+            // 更新或添加记录
+            let recordIndex = checkinRecords.findIndex(record => record.date === dateStr);
+            
+            if (recordIndex === -1) {
+                // 新建记录
+                const newRecord = {
+                    id: Date.now(),
+                    date: dateStr,
+                    morningStatus: type === 'morning' ? '打卡' : '未打卡',
+                    afternoonStatus: type === 'afternoon' ? '打卡' : '未打卡'
+                };
+                checkinRecords.push(newRecord);
+            } else {
+                // 更新现有记录
+                if (type === 'morning') {
+                    checkinRecords[recordIndex].morningStatus = '打卡';
+                } else {
+                    checkinRecords[recordIndex].afternoonStatus = '打卡';
+                }
+            }
+            
+            // 保存到本地存储
+            saveRecords();
+            
+            // 更新UI
+            renderRecords();
+            renderCalendar();
+            
+            showToast(type === 'morning' ? '上午打卡成功' : '下午打卡成功');
+        }
+        
+        // 休班登记
+        function registerRest(type) {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            
+            // 检查是否已经登记休班
+            let recordIndex = checkinRecords.findIndex(record => record.date === dateStr);
+            
+            if (recordIndex === -1) {
+                // 新建记录
+                const newRecord = {
+                    id: Date.now(),
+                    date: dateStr,
+                    morningStatus: '未打卡',
+                    afternoonStatus: '未打卡'
+                };
+                
+                if (type === 'morning' || type === 'all') {
+                    newRecord.morningStatus = '休班';
+                }
+                
+                if (type === 'afternoon' || type === 'all') {
+                    newRecord.afternoonStatus = '休班';
+                }
+                
+                checkinRecords.push(newRecord);
+            } else {
+                // 更新现有记录
+                if (type === 'morning' || type === 'all') {
+                    checkinRecords[recordIndex].morningStatus = '休班';
+                }
+                
+                if (type === 'afternoon' || type === 'all') {
+                    checkinRecords[recordIndex].afternoonStatus = '休班';
+                }
+            }
+            
+            // 保存到本地存储
+            saveRecords();
+            
+            // 更新UI
+            renderRecords();
+            renderCalendar();
+            
+            let message = '';
+            if (type === 'morning') message = '上午休班登记成功';
+            else if (type === 'afternoon') message = '下午休班登记成功';
+            else message = '全天休班登记成功';
+            
+            showToast(message);
+        }
+        
+        // 保存记录到本地存储
+        function saveRecords() {
+            localStorage.setItem('checkinRecords', JSON.stringify(checkinRecords));
+        }
+        
+        // 渲染记录表格
+        function renderRecords(filteredRecords = null) {
+            const recordBody = document.getElementById('recordBody');
+            const recordsToRender = filteredRecords || checkinRecords;
+            
+            if (recordsToRender.length === 0) {
+                recordBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div class="empty-icon">📄</div>
+                            <div>暂无打卡记录</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 按日期降序排序
+            const sortedRecords = [...recordsToRender].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            );
+            
+            recordBody.innerHTML = '';
+            
+            sortedRecords.forEach((record, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${record.date}</td>
+                    <td>${record.morningStatus}</td>
+                    <td>${record.afternoonStatus}</td>
+                    <td>
+                        <button onclick="selectRecord(${record.id})" style="border:none; background:none; color:#409eff; cursor:pointer;">选择</button>
+                    </td>
+                `;
+                recordBody.appendChild(tr);
+            });
+        }
+        
+        // 筛选记录
+        function filterRecords() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (!searchText) {
+                renderRecords();
+                return;
+            }
+            
+            const filtered = checkinRecords.filter(record => 
+                record.date.toLowerCase().includes(searchText) ||
+                record.morningStatus.toLowerCase().includes(searchText) ||
+                record.afternoonStatus.toLowerCase().includes(searchText)
+            );
+            
+            renderRecords(filtered);
+        }
+        
+        // 选择记录（用于编辑/删除）
+        function selectRecord(recordId) {
+            selectedRecordId = recordId;
+            showToast('已选择该记录');
+        }
+        
+        // 打开模态框
+        function openModal(mode) {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modalTitle');
+            const recordForm = document.getElementById('recordForm');
+            
+            // 重置表单
+            recordForm.reset();
+            
+            // 设置标题
+            modalTitle.textContent = mode === 'add' ? '添加记录' : '编辑记录';
+            
+            // 如果是编辑模式且有选中的记录
+            if (mode === 'edit' && selectedRecordId) {
+                const record = checkinRecords.find(r => r.id === selectedRecordId);
+                if (record) {
+                    document.getElementById('recordDate').value = record.date;
+                    document.getElementById('morningStatus').value = record.morningStatus;
+                    document.getElementById('afternoonStatus').value = record.afternoonStatus;
+                } else {
+                    showToast('请先选择要编辑的记录');
+                    return;
+                }
+            }
+            
+            // 显示模态框
+            modal.style.display = 'flex';
+            
+            // 绑定表单提交事件
+            recordForm.onsubmit = function(e) {
+                e.preventDefault();
+                
+                const date = document.getElementById('recordDate').value;
+                const morningStatus = document.getElementById('morningStatus').value;
+                const afternoonStatus = document.getElementById('afternoonStatus').value;
+                
+                if (mode === 'add') {
+                    // 添加新记录
+                    const newRecord = {
+                        id: Date.now(),
+                        date,
+                        morningStatus,
+                        afternoonStatus
+                    };
+                    
+                    // 检查是否已存在该日期的记录
+                    const existingIndex = checkinRecords.findIndex(r => r.date === date);
+                    if (existingIndex !== -1) {
+                        checkinRecords[existingIndex] = {
+                            ...checkinRecords[existingIndex],
+                            morningStatus,
+                            afternoonStatus
+                        };
+                    } else {
+                        checkinRecords.push(newRecord);
+                    }
+                    
+                    showToast('记录添加成功');
+                } else {
+                    // 编辑现有记录
+                    const recordIndex = checkinRecords.findIndex(r => r.id === selectedRecordId);
+                    if (recordIndex !== -1) {
+                        checkinRecords[recordIndex] = {
+                            ...checkinRecords[recordIndex],
+                            date,
+                            morningStatus,
+                            afternoonStatus
+                        };
+                        showToast('记录编辑成功');
+                    }
+                }
+                
+                // 保存并更新UI
+                saveRecords();
+                renderRecords();
+                renderCalendar();
+                closeModal();
+            };
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+        
+        // 删除记录
+        function deleteRecord() {
+            if (!selectedRecordId) {
+                showToast('请先选择要删除的记录');
+                return;
+            }
+            
+            if (confirm('确定要删除选中的记录吗？')) {
+                const recordIndex = checkinRecords.findIndex(r => r.id === selectedRecordId);
+                if (recordIndex !== -1) {
+                    checkinRecords.splice(recordIndex, 1);
+                    saveRecords();
+                    renderRecords();
+                    renderCalendar();
+                    selectedRecordId = null;
+                    showToast('记录删除成功');
+                }
+            }
+        }
+        
+        // 清除指定月份记录
+        function clearMonthRecords() {
+            const month = prompt('请输入要清除记录的月份（格式：YYYY-MM）：');
+            if (!month) return;
+            
+            if (!/^\d{4}-\d{2}$/.test(month)) {
+                showToast('格式错误，请输入YYYY-MM格式');
+                return;
+            }
+            
+            if (confirm(`确定要清除${month}的所有记录吗？`)) {
+                const originalLength = checkinRecords.length;
+                checkinRecords = checkinRecords.filter(record => 
+                    !record.date.startsWith(month)
+                );
+                
+                saveRecords();
+                renderRecords();
+                renderCalendar();
+                
+                const deletedCount = originalLength - checkinRecords.length;
+                showToast(`已清除${deletedCount}条记录`);
+            }
+        }
+        
+        // 导出记录为Excel
+        function exportRecords() {
+            if (checkinRecords.length === 0) {
+                showToast('暂无记录可导出');
+                return;
+            }
+            
+            // 准备导出数据
+            const exportData = checkinRecords.map((record, index) => ({
+                序号: index + 1,
+                日期: record.date,
+                上午状态: record.morningStatus,
+                下午状态: record.afternoonStatus
+            }));
+            
+            // 创建工作簿
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "考勤记录");
+            
+            // 导出文件
+            const now = new Date();
+            const fileName = `考勤记录_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            showToast('记录导出成功');
+        }
+        
+        // 渲染日历
+        function renderCalendar() {
+            const calendarGrid = document.getElementById('calendarGrid');
+            const currentMonthEl = document.getElementById('currentMonth');
+            
+            // 设置当前月份标题
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth() + 1;
+            currentMonthEl.textContent = `${year}年${month}月`;
+            
+            // 获取当月第一天
+            const firstDay = new Date(year, currentCalendarMonth.getMonth(), 1);
+            // 获取当月最后一天
+            const lastDay = new Date(year, currentCalendarMonth.getMonth() + 1, 0);
+            // 获取当月第一天是星期几 (0-6, 0是周日)
+            const firstDayOfWeek = firstDay.getDay();
+            
+            // 清空日历
+            calendarGrid.innerHTML = '';
+            
+            // 添加前置空白格子
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day';
+                calendarGrid.appendChild(emptyCell);
+            }
+            
+            // 添加日期格子
+            const daysInMonth = lastDay.getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                
+                // 查找该日期的记录
+                const record = checkinRecords.find(r => r.date === dateStr);
+                
+                // 创建日期格子
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                
+                // 日期数字
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayCell.appendChild(dayNumber);
+                
+                // 上午状态
+                const morningCell = document.createElement('div');
+                morningCell.className = 'status-cell';
+                
+                if (record && record.morningStatus === '打卡') {
+                    morningCell.classList.add('status-present');
+                    morningCell.textContent = '√';
+                } else if (record && record.morningStatus === '休班') {
+                    morningCell.classList.add('status-rest');
+                    morningCell.textContent = '休';
+                } else {
+                    morningCell.classList.add('status-absent');
+                    morningCell.textContent = '×';
+                }
+                
+                dayCell.appendChild(morningCell);
+                
+                // 下午状态
+                const afternoonCell = document.createElement('div');
+                afternoonCell.className = 'status-cell';
+                
+                if (record && record.afternoonStatus === '打卡') {
+                    afternoonCell.classList.add('status-present');
+                    afternoonCell.textContent = '√';
+                } else if (record && record.afternoonStatus === '休班') {
+                    afternoonCell.classList.add('status-rest');
+                    afternoonCell.textContent = '休';
+                } else {
+                    afternoonCell.classList.add('status-absent');
+                    afternoonCell.textContent = '×';
+                }
+                
+                dayCell.appendChild(afternoonCell);
+                
+                calendarGrid.appendChild(dayCell);
+            }
+        }
+        
+        // 切换月份
+        function changeMonth(direction) {
+            currentCalendarMonth = new Date(
+                currentCalendarMonth.getFullYear(),
+                currentCalendarMonth.getMonth() + direction,
+                1
+            );
+            renderCalendar();
+        }
+        
+        // 初始化
+        window.onload = function() {
+            // 初始化当前日历月份为今天
+            currentCalendarMonth = new Date();
+            // 渲染记录
+            renderRecords();
+            // 渲染日历
+            renderCalendar();
+            
+            // 点击模态框外部关闭
+            const modal = document.getElementById('modal');
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
